@@ -12,7 +12,7 @@ Captures many live pages from a running dev server into Figma simultaneously —
 
 The `generate_figma_design` tool handles single-page capture on its own. What it doesn't provide is a way to capture many pages at once. Without this skill, you'd open each tab manually, wait for it to complete, then move to the next.
 
-This skill uses Chrome DevTools MCP to open every tab simultaneously with the capture session embedded in the URL hash. Combined with parallel polling, an entire site section — 13, 20 pages or more — lands in Figma in the time it takes to capture one page manually.
+This skill uses Chrome DevTools MCP to open every tab simultaneously with the capture session embedded in the URL hash. Combined with parallel polling, an entire site section lands in Figma in the time it takes to capture one page manually.
 
 ## Prerequisites
 
