@@ -6,7 +6,7 @@ A Claude Code skill for bulk-capturing many live web app pages into Figma in one
 
 The `generate_figma_design` tool handles single-page capture on its own. This skill covers what it doesn't: capturing many pages at once.
 
-It uses Chrome DevTools MCP to open every tab simultaneously with a capture session embedded in the URL hash. Combined with parallel polling, an entire site section — 13, 20 pages or more — lands in Figma in the time it takes to capture one page manually. No manual clicking required.
+It uses Chrome DevTools MCP to open every tab simultaneously with a capture session embedded in the URL hash. Combined with parallel polling, an entire site section lands in Figma in the time it takes to capture one page manually. No manual clicking required.
 
 ## Prerequisites
 
