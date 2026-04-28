@@ -17,7 +17,10 @@ This skill uses Chrome DevTools MCP to open every tab simultaneously with the ca
 ## Prerequisites
 
 1. **Figma MCP server** connected with `generate_figma_design` available (remote-only; requires a paid Figma plan)
-2. **Chrome DevTools MCP server** connected with `new_page` available
+2. **Chrome DevTools MCP server** connected with `new_page` available. If not yet installed, add it to Claude Code:
+   ```sh
+   claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest
+   ```
 3. **Dev server running** — note the base URL (e.g. `http://localhost:3000`)
 4. **Capture script injected** — the app must load Figma's capture script on every page you want to capture, gated behind an environment variable so it never runs in production (see [Setup](#setup))
 5. **Target Figma file** — extract `fileKey` from any Figma URL: `figma.com/design/:fileKey/...`. Optional: `nodeId` to target a specific destination frame.
