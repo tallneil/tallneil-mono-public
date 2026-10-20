@@ -1,6 +1,6 @@
 ---
 name: bulk-capture
-description: Bulk-capture many live web app pages into Figma in one shot — no manual clicking — using generate_figma_design and Chrome DevTools MCP. Use when the user wants to send multiple pages, screens, or an entire flow to Figma simultaneously. For single-page capture, generate_figma_design alone is sufficient.
+description: Bulk-capture many live web app pages into Figma in one shot — no manual clicking — using generate_figma_design and Chrome DevTools MCP. Use when the user wants to send multiple pages, screens, UI states (open and closed, before and after) or an entire flow to Figma simultaneously, optionally cropped to a single element. For single-page capture, generate_figma_design alone is sufficient.
 disable-model-invocation: false
 ---
 
@@ -54,16 +54,22 @@ Restart the dev server after adding it. Once loaded, the script activates automa
 
 ## Workflow
 
+### Step 0 — Start a Figma session
+
+If the Figma MCP server offers `create_session`, call it once with the `fileKey` and a short description of the task, and pass the returned `sessionId` on every later Figma call, polls included.
+
 ### Step 1 — Generate all capture IDs in parallel
 
-Call `generate_figma_design` once per page, all at the same time. Each call returns a unique `captureId`. All target the same `fileKey` (and optional `nodeId`).
+Call `generate_figma_design` once per page, all at the same time. Each call returns a unique `captureId`. All target the same `fileKey` (and optional `nodeId`, which can be a page or a frame).
 
 ```
-generate_figma_design(outputMode: "existingFile", fileKey: "...", nodeId: "...")
-generate_figma_design(outputMode: "existingFile", fileKey: "...", nodeId: "...")
-generate_figma_design(outputMode: "existingFile", fileKey: "...", nodeId: "...")
+generate_figma_design(fileKey: "...", nodeId: "...", sessionId: "...")
+generate_figma_design(fileKey: "...", nodeId: "...", sessionId: "...")
+generate_figma_design(fileKey: "...", nodeId: "...", sessionId: "...")
 # ... one per page, all at once
 ```
+
+Each response includes a ready-made hash URL. Copy its `figmaendpoint` value as given rather than building it yourself: it can carry a query string (currently `?bindVariables=true`) that a hand-built endpoint would drop.
 
 ### Step 2 — Open all tabs simultaneously
 
@@ -94,14 +100,48 @@ Each returns `status: "completed"` when done. They typically all finish within o
 ## Hash fragment format
 
 ```
-<base-url>/<path>#figmacapture=<captureId>&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2F<captureId>%2Fsubmit&figmadelay=2000
+<base-url>/<path>#figmacapture=<captureId>&figmaendpoint=<endpoint from the tool's response>&figmadelay=2000
 ```
 
-Example:
+Example, with the endpoint as the tool returned it at the time of writing:
 
 ```
-http://localhost:3000/dashboard#figmacapture=abc123&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2Fabc123%2Fsubmit&figmadelay=2000
+http://localhost:3000/dashboard#figmacapture=abc123&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2Fabc123%2Fsubmit%3FbindVariables%3Dtrue&figmadelay=2000
 ```
+
+Optional parameters:
+
+- `figmadelay=<ms>` — wait before capturing.
+- `figmaselector=<css>` — capture one element instead of the whole page (URL-encode it). See [Capturing one element](#capturing-one-element).
+
+## Capturing one element
+
+To capture a single component (a card, a panel, a form section) rather than the full page, add `figmaselector=<css>`. The Figma frame comes out sized to that element.
+
+Pick a selector that matches exactly one element, and that keeps matching in every state you plan to capture. A class or position that changes when the element opens or closes will capture the wrong thing or nothing. `:has()` works well for anchoring on a stable child, such as a heading or a labelled button inside the element:
+
+```
+section:has([aria-label="Edit billing"])
+```
+
+URL-encoded in the hash:
+
+```
+&figmaselector=section%3Ahas(%5Baria-label%3D%22Edit%20billing%22%5D)
+```
+
+Check it before capturing: `document.querySelectorAll('<selector>').length` should be `1` in each state.
+
+## Capturing UI states
+
+The capture fires once, `figmadelay` ms after the page loads, so it records whatever state the page is in at that moment. To capture a state that takes interaction to reach (an expanded panel, an open menu, a filled form, a later step):
+
+1. Open the tab with a `figmadelay` long enough to interact first, e.g. `15000`.
+2. As soon as the page renders, drive it into the state with Chrome DevTools MCP: `evaluate_script` (e.g. `document.querySelector('<trigger>').click()`) or `click`.
+3. Before the delay runs out, confirm the state took: measure something that differs between states (an element's height, a computed style, an attribute) rather than assuming the click worked.
+4. Poll as usual.
+
+To capture several states of the same page, give each state its own tab and its own `captureId`. The default state needs no interaction and can use a short delay.
 
 ## Gotchas
 
@@ -115,6 +155,10 @@ Two common causes:
 
 - **Auth wall or missing state** — the page requires login or localStorage state (e.g. selected items, feature flags). Open the page manually in the DevTools browser first to seed the session, then re-capture with fresh `captureId`s.
 - **`figmadelay` too short** — data hasn't loaded before the capture fires. Increase to 3000–5000 ms and retry.
+
+### A capture stays `pending` after its delay has passed
+
+Background tabs can stall a capture, especially one with a long `figmadelay`: the poll keeps returning `pending` well after the delay should have fired. Bring the tab to the front (`select_page` with `bringToFront: true`) and poll again. Check the tab's console too: the capture script should have loaded (a report-only Content Security Policy warning about it is harmless; an enforced one blocks it).
 
 ### Chrome DevTools MCP browser conflict
 

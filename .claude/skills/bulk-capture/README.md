@@ -8,6 +8,8 @@ The `generate_figma_design` tool handles single-page capture on its own. This sk
 
 It uses Chrome DevTools MCP to open every tab simultaneously with a capture session embedded in the URL hash. Combined with parallel polling, an entire site section lands in Figma in the time it takes to capture one page manually. No manual clicking required.
 
+It can also capture several states of one page (an expanded panel, an open menu, a later step) and crop a capture to a single element.
+
 ## Prerequisites
 
 - Figma MCP server connected (remote), with `generate_figma_design` available
